@@ -13,7 +13,7 @@ Output: Solutions to the Sudoku problems
 
 #define SIZE 9
 
-int board[SIZE][SIZE];
+int** board;
 
 // Reads file and gets the Sudoku board
 void importBoard() {
@@ -32,8 +32,11 @@ void importBoard() {
         fclose(file);
     }
 
-    // Read the file and store the board in a 2D array
-    file = fopen("sudoku.txt", "r");
+    // Read the file and store the board in a 2D array pointer
+    board = malloc(SIZE * sizeof(int*));
+    for (i = 0; i < SIZE; i++) {
+        board[i] = malloc(SIZE * sizeof(int));
+    }
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < SIZE; j++) {
             fscanf(file, "%d", &board[i][j]);
@@ -61,78 +64,60 @@ void printBoard() {
     printf("+-------+-------+-------+\n\n");
 }
 
-// 1 for valid, 0 for invalid
-int boardIsValid() {
-    // Every number in each sub-grid must be unique
-    int i, j, k, l;
-    for (i = 0; i < SIZE; i++) {
-        for (j = 0; j < SIZE; j++) {
-            if (board[i][j] != 0) {
-                for (k = 0; k < SIZE; k++) {
-                    if (board[i][k] == board[i][j] && k != j) {
-                        return 0;
-                    }
-                }
-                for (l = 0; l < SIZE; l++) {
-                    if (board[l][j] == board[i][j] && l != i) {
-                        return 0;
-                    }
-                }
-            }
-        }
-    }
+int isNumInRow(int** board, int number, int row) {
+    for(int i = 0; i < SIZE; i++)
+        if(board[row][i] == number)
+            return 1;
+    return 0;
+}
 
-    // Every number in each row must be unique
-    int i2, j2, k2;
-    for (i2 = 0; i2 < SIZE; i2++) {
-        for (j2 = 0; j2 < SIZE; j2++) {
-            if (board[i2][j2] != 0) {
-                for (k2 = 0; k2 < SIZE; k2++) {
-                    if (board[i2][k2] == board[i2][j2] && k2 != j2) {
-                        return 0;
-                    }
-                }
-            }
-        }
-    }
+int isNumInCol(int** board, char number, int col) {
+    for(int i = 0; i < SIZE; i++)
+        if(board[i][col] == number)
+            return 1;
+    return 0;
+}
 
-    // Every number in each column must be unique
-    int i3, j3, k3;
-    for (i3 = 0; i3 < SIZE; i3++) {
-        for (j3 = 0; j3 < SIZE; j3++) {
-            if (board[j3][i3] != 0) {
-                for (k3 = 0; k3 < SIZE; k3++) {
-                    if (board[k3][i3] == board[j3][i3] && k3 != j3) {
-                        return 0;
-                    }
-                }
-            }
-        }
-    }
+int isNumInSubBox(int** board, char number, int row, int col) {
+    int subBoxRow = row - row % 3;
+    int subBoxCol = col - col % 3;
+    
+    for(int i = subBoxRow; i < subBoxRow + 3; i++)
+        for(int j = subBoxCol; j < subBoxCol + 3; j++)
+            if(board[i][j] == number)
+                return 1;
+    return 0;
+}
 
-    return 1;
+int canPlaceNum(int** board, int number, int row, int col) {
+    // All 3 ways of placement (current row, current column and current sub-box).
+    // Should return false for this number
+    return  !isNumInRow(board, number, row) &&
+            !isNumInCol(board, number, col) &&
+            !isNumInSubBox(board, number, row, col);
 }
 
 /**
- * @brief Solves the Sudoku board using backtracking algorithm
+ * @brief Solves the Sudoku board using recursive backtracking algorithm
  * @param board The current state of the Sudoku board
  * @return int 1 for solved, 0 for not solved
  */
-int backtrack(int board[SIZE][SIZE]) {
+int backtrack(int** board) {
     int i, j;
     for (i = 0; i < SIZE; i++) {
         for (j = 0; j < SIZE; j++) {
+            // Search for empty cell
             if (board[i][j] == 0) {
                 int k;
                 for (k = 1; k <= SIZE; k++) {
-                    board[i][j] = k;
-                    if (!boardIsValid()) {
-                        board[i][j] = 0;
-                    }
-                    if (backtrack(board)) {
-                        return 1;
-                    } else {
-                        board[i][j] = 0;   
+                    if(canPlaceNum(board, k, i, j)) {
+                        board[i][j] = k;
+                        
+                        // recursively try other cells
+                        if(backtrack(board)) 
+                            return 1;
+                        else 
+                            board[i][j] = 0;    // reset the cell to try other numbers    
                     }
                 }
                 return 0;
@@ -146,18 +131,14 @@ void solveBoard() {
     if (backtrack(board)) {
         printBoard();
     } else {
-        printf("No solution exists\n");
+        printf("No solution exists\n\n");
     }
 }
 
 int main() {
     printf("\n");
     importBoard();
-    if (!boardIsValid()) {
-        printf("The board is invalid. Please import another board.\n\n");
-    } else {
-        printBoard();
-    }
+    printBoard();
     
     int choice = 0;
 
@@ -170,16 +151,11 @@ int main() {
         if (choice == 1) {
             // Solve the board
             solveBoard();
-            printBoard();
 
         } else if (choice == 2) {
             // Create a new board
             importBoard();
-            if (!boardIsValid()) {
-                printf("The board is invalid. Please import another board.\n\n");
-            } else {
-                printBoard();
-            }
+            printBoard();
             
         } else {
             break;
