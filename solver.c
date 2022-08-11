@@ -113,11 +113,13 @@ int backtrack(int** board) {
                     if(canPlaceNum(board, k, i, j)) {
                         board[i][j] = k;
                         
-                        // recursively try other cells
-                        if(backtrack(board)) 
+                        // Recurseively call backtrack on the next cell
+                        if(backtrack(board)) {
                             return 1;
-                        else 
-                            board[i][j] = 0;    // reset the cell to try other numbers    
+                        } else { 
+                            // Reset cell to 0
+                            board[i][j] = 0;        
+                        }
                     }
                 }
                 return 0;
@@ -158,6 +160,7 @@ int main() {
             printBoard();
             
         } else {
+            // Quit
             break;
         }
     }
